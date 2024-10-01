@@ -539,6 +539,9 @@ Conforme visto no caso para dados de temperatura instantânea para São João de
 A seguir ilustra-se arbitrariamente a separação das primeiras 75% observações em treino e os 25% restantes para teste.
 
 ```{r}
+#| fig-width: 8
+#| fig-height: 1
+
 data.frame(y=0, x=1:20,
            id = c(rep("treino", 20*.75), 
                 rep("teste", 20*.25))) |>
@@ -585,3 +588,7 @@ last_days <- tempo_sjdr_7_dias |>
 accuracy(temp_fc, last_days) |>
   select(.model,RMSE,MAE,MAPE) |> gt()
 ```
+
+## Referências 
+
+Hyndman, R.J., & Athanasopoulos, G. (2021) Forecasting: principles and practice, 3rd edition, OTexts: Melbourne, Australia. OTexts.com/fpp3. Accessed on 01/10/2024.

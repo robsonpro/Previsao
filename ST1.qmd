@@ -79,15 +79,15 @@ faodata <- read.csv("FAOSTAT_data_BR_production.csv",
 ```
 
 ```{r}
-head(faodata) 
+# head(faodata) 
 ```
 
 ```{r}
-glimpse(faodata)
+# glimpse(faodata)
 ```
 
 ```{r}
-levels(as.factor(faodata$Item))
+# levels(as.factor(faodata$Item))
 ```
 
 ```{r}
@@ -124,7 +124,7 @@ faodata_ |>
   labs(x="", y="ton")
 ```
 
-Um exemplo de série temporal multivariada é tomada a seguir considerando dados de visualizaçoes de 4 vídeos da playlist Tolerâncias e ajustes do Canal da engenharia de manufatura e qualidade. A série inicia em 2018, ano de início do canal, porém só tem dados segundo a data de lançamento de cada vídeo. A seguir são observadas algumas linhas da série.
+Um exemplo de série temporal multivariada é observada a seguir considerando dados de visualizaçoes de 4 vídeos da playlist Tolerâncias e ajustes do Canal da engenharia de manufatura e qualidade. A série inicia em 2018, ano de início do canal, porém só tem dados segundo a data de lançamento de cada vídeo. A seguir são observadas algumas linhas da série.
 
 ```{r}
 tol <- read.csv("tolerancia_ajuste.csv")
@@ -177,7 +177,7 @@ A seguir são observados dados de produção de quatro tipos de energia para o a
 
 ```{r}
 energia_2023 <- read.csv("BALANCO_ENERGIA_SUBSISTEMA_2023.csv", header = T, sep = ";")
-head(energia_2023) |> gt()
+# head(energia_2023) |> gt()
 ```
 
 A série temporal multivariada é plotada a seguir. Pode-se observar o aumento na produção das fontes complementares quando a hidráulica apresentou declínio no período mais seco do ano.
@@ -192,10 +192,14 @@ energia_2023_tsibble <- energia_2023 |>
             val_carga,val_intercambio)) |>
   pivot_longer(!din_instante)
 
+energia_2023_tsibble |> head() |> gt()
+```
 
+```{r}
 energia_2023_tsibble |>
   autoplot(value, alpha = .5) + labs(y = "Energia", x = "")
 ```
+
 
 A série temporal multivariada é plotada em múltiplos painéis a seguir.
 
@@ -299,3 +303,8 @@ head(components(dcmp)[,3:7]) |> gt()
 ```{r}
 components(dcmp) |> autoplot() + ggtitle("")
 ```
+
+## Referências 
+
+Hyndman, R.J., & Athanasopoulos, G. (2021) Forecasting: principles and practice, 3rd edition, OTexts: Melbourne, Australia. OTexts.com/fpp3. Accessed on 01/10/2024.
+
