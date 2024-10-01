@@ -1,0 +1,46 @@
+
+```{r}
+chegadas <- read.csv("chegadas_2023.csv", fileEncoding = "ISO-8859-1")
+```
+
+```{r}
+chegadas <- chegadas |>
+  select(Continente, Pais, UF, Via, Mes, Chegadas)
+
+meses_pt <- c("Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro")
+
+chegadas <- chegadas |>
+  mutate(
+    Mes_num = match(Mes, meses_pt),  
+    # Transformar o nome do mês em número
+    Data = make_date(year = 2023, month = Mes_num, day = 1)) |>
+  select(!c(Mes, Mes_num)) |>
+  group_by(Continente, Pais, UF, Via, Data) |>
+  summarize(Chegadas = sum(Chegadas, na.rm = TRUE), 
+            .groups = "drop") |>
+  arrange(Data)
+
+chegadas<- chegadas |>
+  filter(!is.na(Data))
+
+chegadas_tsibble <- chegadas |>
+  as_tsibble(index = Data, 
+             key = c(Continente, Pais, UF, Via))
+
+glimpse(chegadas)
+```
+
+```{r}
+chegadas_tsibble |> 
+  group_by(Continente) |>
+  summarise(Chegadas = sum(Chegadas)) |>
+  features(Chegadas, list(mean = mean)) |> gt()
+```
+
+```{r}
+chegadas_AS <- chegadas_tsibble |> 
+  filter(Continente == "Europa")
+
+chegadas_AS |> 
+  features(Chegadas, list(mean = mean)) |> gt()
+```
