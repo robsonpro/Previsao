@@ -27,6 +27,7 @@ library(GGally)
 library(gt)
 theme_set(theme_bw())
 ```
+
 ### Exemplos de séries e visualizações
 
 A seguir observa-se graficamente a série temporal do índice de preços ao consumidor (IPCA), com frequência mensal a partir de 1980. A série foi obtida em http://www.ipeadata.gov.br. As primeiras observações da série também são exibidas. Observa-se claramente como a inflação no país foi controlada a partir da adoção do plano real.
@@ -50,7 +51,7 @@ Para visualizar melhor como o IPCA variou nos últimos anos, pode-se selecionar 
 ipca_tsibble |>  filter(year(index) >= 2000) |> autoplot(value) + geom_line(col="slategrey") + labs(y = "IPCA", x = "")
 ```
 
-A seguir apresentam-se as primeiras observações da série temporal de volume  de carros produzidos no Brasil a partir de 1990. A série foi obtida em https://anfavea.com.br/site/edicoes-em-excel/ e apresenta frequência mensal.
+A seguir apresentam-se as primeiras observações da série temporal de volume de carros produzidos no Brasil a partir de 1990. A série foi obtida em https://anfavea.com.br/site/edicoes-em-excel/ e apresenta frequência mensal.
 
 ```{r}
 carros <- read.csv("vendas_veiculos.csv", sep = ";")
@@ -61,6 +62,7 @@ carros_tsibble <- carros |>
 
 head(carros_tsibble) |> gt()
 ```
+
 A série é plotada à seguir. Pode-se observar alguns períodos de queda no volume, por exemplo, próximo de 2015 durante a crise política do país e em 2020 durante a pandemia, onde a produção chegou a níveis anteriores aos dos anos 2000.
 
 ```{r}
@@ -113,7 +115,7 @@ faodata_ |> autoplot(Value) +
   labs(x="", y="ton")
 ```
 
-A série de produção de batata é plotada individualmente à seguir. Devido a grande diferença em relação aos níveis de produção de milho, aparentemente parecia próxima de estacionária, porém ao plotar individualmente, observa-se uma tendência linear no aumento de produção deste item. 
+A série de produção de batata é plotada individualmente à seguir. Devido a grande diferença em relação aos níveis de produção de milho, aparentemente parecia próxima de estacionária, porém ao plotar individualmente, observa-se uma tendência linear no aumento de produção deste item.
 
 ```{r}
 faodata_ |> 

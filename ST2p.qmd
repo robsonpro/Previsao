@@ -30,7 +30,7 @@ library(curl)
 theme_set(theme_bw())
 ```
 
-- Algumas estatítiscas descritivas são úteis para uma avaliação inicial. 
+-   Algumas estatítiscas descritivas são úteis para uma avaliação inicial.
 
 ```{r}
 energia_2023 <- read.csv("BALANCO_ENERGIA_SUBSISTEMA_2023.csv", header = T, sep = ";")
@@ -69,8 +69,8 @@ energia_2023_tsibble |>
 
 ## Estatísticas descritivas simples
 
-- Primeiro deixa 25\% das observações abaixo, o segundo ou a mediana deixa 50\% das observações abaixo, enquanto o terceiro e último deixa 75\% dos dados abaixo. 
-- Mínimo (0\%) e máximo (100\%) de cada série são fornecidos.
+-   Primeiro deixa 25% das observações abaixo, o segundo ou a mediana deixa 50% das observações abaixo, enquanto o terceiro e último deixa 75% dos dados abaixo.
+-   Mínimo (0%) e máximo (100%) de cada série são fornecidos.
 
 ```{r}
 energia_2023_tsibble |> features(value, quantile) |> gt()
@@ -78,10 +78,10 @@ energia_2023_tsibble |> features(value, quantile) |> gt()
 
 ## Autocorrelação
 
-- Estatística importante para avaliar sées temporais. 
-- Deve-se defasar a série e calcular a correlação da série original com a série defasada. 
-- Para uma defasagem (*lag*) de uma observação, $k=1$, calcula-se a correlação $r_1$ entre $y_t$ e $y_{t-1}$. 
-- Para uma defasagem de duas observações, $k=2$, calcula-se a correlação $r_2$ entre $y_t$ e $y_{t-2}$ e assim sucessivamente.
+-   Estatística importante para avaliar sées temporais.
+-   Deve-se defasar a série e calcular a correlação da série original com a série defasada.
+-   Para uma defasagem (*lag*) de uma observação, $k=1$, calcula-se a correlação $r_1$ entre $y_t$ e $y_{t-1}$.
+-   Para uma defasagem de duas observações, $k=2$, calcula-se a correlação $r_2$ entre $y_t$ e $y_{t-2}$ e assim sucessivamente.
 
 $$
 r_k = \frac{\sum_{t=k+1}^T (y_t-\bar{y})(y_{t-k}-\bar{y})}{\sum_{t=1}^T (y_t-\bar{y})^2}
@@ -89,8 +89,8 @@ $$
 
 ## Correlograma
 
-- Correlograma: Gráfico que plota as autocorrelações para diferentes defasagens.
-- Abaixo plota-se o correlograma da série de níveis de CO2 a partir de 2000, com até 100 defasagens.
+-   Correlograma: Gráfico que plota as autocorrelações para diferentes defasagens.
+-   Abaixo plota-se o correlograma da série de níveis de CO2 a partir de 2000, com até 100 defasagens.
 
 ```{r}
 co2 <- read.csv("co2_mm_mlo.txt", header = TRUE, skip = 41, sep = "")
@@ -121,9 +121,9 @@ co2_tsibble |>
 
 ::: columns
 ::: {.column width="30%"}
-- Figura a: ruído branco. Não apresenta autocorrelação significativa (correlograma na Figura d). 
-- Figura b: padrão cíclico com sazonalidade de 24h (correlograma na Figura e). 
-- Figura c: apresenta tendência linear positiva com sazonalidade anual (correlograma na Figura f).
+-   Figura a: ruído branco. Não apresenta autocorrelação significativa (correlograma na Figura d).
+-   Figura b: padrão cíclico com sazonalidade de 24h (correlograma na Figura e).
+-   Figura c: apresenta tendência linear positiva com sazonalidade anual (correlograma na Figura f).
 :::
 
 ```{r}
@@ -200,18 +200,17 @@ plot_grid(p1,p3,p4,p5,p7,p8, nrow=2,
 :::
 :::
 
-
 ## Métodos simples de previsão: Média
 
 ::: columns
 ::: {.column width="50%"}
-- Série histórica $y_1, ..., y_T$.
+-   Série histórica $y_1, ..., y_T$.
 
 $$
 \hat{y}_{T+h|T}=\frac{1}{T}\sum_{t=1}^Ty_t=\frac{y_1+y_2+...+y_T}{T}
 $$
 
-- Previsão com a média para três dias à frente na série temporal de produção de carros no Brasil.
+-   Previsão com a média para três dias à frente na série temporal de produção de carros no Brasil.
 :::
 
 ::: {.column width="50%"}
@@ -238,13 +237,13 @@ carros_pred1 |>
 
 ::: columns
 ::: {.column width="50%"}
-- Propõe prever as observações futuras como a última observação.
+-   Propõe prever as observações futuras como a última observação.
 
 $$
 \hat{y}_{T+h|T}=y_T
 $$
 
-- Previsão com o método ingênuo para três dias à frente na série temporal de produção de carros no Brasil.
+-   Previsão com o método ingênuo para três dias à frente na série temporal de produção de carros no Brasil.
 :::
 
 ::: {.column width="50%"}
@@ -267,15 +266,15 @@ carros_pred2 |>
 
 ::: columns
 ::: {.column width="50%"}
-- Indicado para séries muito sazonais. 
-- Propõe prever as observações futuras iguais aos períodos das estações anteriores
-- $m$: período sazonal; $k$: parte inteira de $(h-1)/m$ (número completo de períodos antes de $T+h$).
+-   Indicado para séries muito sazonais.
+-   Propõe prever as observações futuras iguais aos períodos das estações anteriores
+-   $m$: período sazonal; $k$: parte inteira de $(h-1)/m$ (número completo de períodos antes de $T+h$).
 
 $$
 \hat{y}_{T+h|T}=y_{T+h-m(k+1)}
 $$
 
-- Previsão com o método ingênuo sazonal para três dias à frente na série temporal de produção de carros no Brasil.
+-   Previsão com o método ingênuo sazonal para três dias à frente na série temporal de produção de carros no Brasil.
 :::
 
 ::: {.column width="50%"}
@@ -296,9 +295,9 @@ carros_pred3 |>
 
 ## Métodos simples de previsão
 
-- Conjunto de dados de temperatura instantânea das duas primeiras semanas de Maio de 2024 para a cidade de São joão del-Rei. 
-- Dados da primeira semana para treinar os modelos. 
-- Previsões plotadas para a semana seguinte juntamente com os dados. 
+-   Conjunto de dados de temperatura instantânea das duas primeiras semanas de Maio de 2024 para a cidade de São joão del-Rei.
+-   Dados da primeira semana para treinar os modelos.
+-   Previsões plotadas para a semana seguinte juntamente com os dados.
 
 ```{r}
 train <- tempo_sjdr_7_dias |>
@@ -329,9 +328,9 @@ https://tempo.inmet.gov.br/TabelaEstacoes/A001
 
 ::: columns
 ::: {.column width="50%"}
-- Variação do ingênuo que permite a previsão de observações com tendência de crescimento ou decréscimo segundo a deriva observada entre a primeira e última observação.
+-   Variação do ingênuo que permite a previsão de observações com tendência de crescimento ou decréscimo segundo a deriva observada entre a primeira e última observação.
 
-- Previsão com o método da deriva para três dias à frente na série temporal de produção de carros no Brasil.
+-   Previsão com o método da deriva para três dias à frente na série temporal de produção de carros no Brasil.
 
 $$
 \hat{y}_{T+h|T} = y_T + \frac{h}{T-1}\sum_{t=2}^T(y_t-y_{t-1}) =y_T+h \bigg(\frac{y_T-y_1}{T-1}\bigg) 
@@ -365,13 +364,13 @@ carros_pred4 |>
 
 ## Resíduos e valores previstos
 
-- Valores previstos $\hat{y}_{t|t-1}$, implicando que a previsão de $\hat{y}_{t}$ é baseada nas observações $y_1, ..., y_{t-1}$.
+-   Valores previstos $\hat{y}_{t|t-1}$, implicando que a previsão de $\hat{y}_{t}$ é baseada nas observações $y_1, ..., y_{t-1}$.
 
-- Resíduos (erros) de uma série temporal são calculados como a diferença entre o observado e o previsto em cada instante de tempo.
+-   Resíduos (erros) de uma série temporal são calculados como a diferença entre o observado e o previsto em cada instante de tempo.
 
 $$e_t=y_t-\hat{y}_t$$
 
-- Valores previstos (`.fitted`) e os resíduos (`.resid`) para as previsões obtidas com o método Ingênuo sazonal para as últimas observações.
+-   Valores previstos (`.fitted`) e os resíduos (`.resid`) para as previsões obtidas com o método Ingênuo sazonal para as últimas observações.
 
 ```{r}
 augment(temp_fit) |> 
@@ -384,20 +383,19 @@ augment(temp_fit) |>
 
 Os resíduos de um modelo de séries temporais devem ser:
 
-- Não correlacionados.
+-   Não correlacionados.
 
-- Com média nula.
-
+-   Com média nula.
 
 É interessante, porém não-obrigatório, que os resíduos sejam:
 
-3. Homocedasticos.
+3.  Homocedasticos.
 
-4. Normalmente distribuídos.
+4.  Normalmente distribuídos.
 
 ## Diagnósticos dos resíduos
 
-- Série histórica de 187 observações do índice Ibovespa.
+-   Série histórica de 187 observações do índice Ibovespa.
 
 ```{r}
 ibov |>
@@ -411,8 +409,8 @@ https://www.infomoney.com.br/cotacoes/b3/indice/ibovespa/historico/
 
 ## Diagnósticos dos resíduos
 
-- Previsão de índices da bolsa com o método Ingênuo. 
-- $e_t = y_t - \hat{y}_t = y_t - y_{t-1}$.
+-   Previsão de índices da bolsa com o método Ingênuo.
+-   $e_t = y_t - \hat{y}_t = y_t - y_{t-1}$.
 
 ```{r}
 aug <- ibov |>
@@ -430,7 +428,7 @@ ibov |>
 
 ## Testes de autocorrelação
 
-- Testes para averiguar se as $l$ primeiras autocorrelações são diferentes do que se esperaria para um ruído branco. 
+-   Testes para averiguar se as $l$ primeiras autocorrelações são diferentes do que se esperaria para um ruído branco.
 
 **Box-Pierce**
 
@@ -438,8 +436,8 @@ $$
 Q = T\sum_{k=1}^l r_k^2
 $$
 
-- Sugere-se $l=10$ autocorrelações para séries não sazonais e $l=2m$ para casos sazonais, com $m$ sendo o período sazonal. 
-- Teste não é adequado para $l$ auto, sugerindo-se no máximo $l=T/5$. 
+-   Sugere-se $l=10$ autocorrelações para séries não sazonais e $l=2m$ para casos sazonais, com $m$ sendo o período sazonal.
+-   Teste não é adequado para $l$ auto, sugerindo-se no máximo $l=T/5$.
 
 ## Testes de autocorrelação
 
@@ -449,13 +447,13 @@ $$
 Q^* = T(T+2)\sum_{k=1}^l (T-k)^{-1}r_k^2
 $$
 
-- Alto valor de $Q^*$ (ou $Q$) sugere que as autocorrelações não vem de um ruído branco.
-- Para decisão, considera-se que $Q^*$ (ou $Q$) segue a distribuição $\chi^2$ com $l$ graus de liberdade. 
+-   Alto valor de $Q^*$ (ou $Q$) sugere que as autocorrelações não vem de um ruído branco.
+-   Para decisão, considera-se que $Q^*$ (ou $Q$) segue a distribuição $\chi^2$ com $l$ graus de liberdade.
 
 ## Testes de autocorrelação
 
-- valor $Q$ e $Q^*$ para os resíduos do modelo Ingênuo para os dados do índice Ibovespa. 
-- Os testes indicam que as autocorrelações dos resíduos não diferem das de ruído branco. 
+-   valor $Q$ e $Q^*$ para os resíduos do modelo Ingênuo para os dados do índice Ibovespa.
+-   Os testes indicam que as autocorrelações dos resíduos não diferem das de ruído branco.
 
 ```{r}
 aug |> features(.innov, box_pierce, lag = 10) |> gt()
@@ -465,21 +463,22 @@ aug |> features(.innov, ljung_box, lag = 10) |> gt()
 
 ## Intervalos de previsão
 
-- Intervalo de previsão com nível de probabilidade ou confiança de interesse. 
-- Para, por exemplo, um intervalo de previsão de 95\%, os limites garantem que o valor previsto estará entre eles com 95\% de confiança.
+-   Intervalo de previsão com nível de probabilidade ou confiança de interesse.
 
-- Intervalo de previsão para $h$ passos à frente com 95\% de confianca.
+-   Para, por exemplo, um intervalo de previsão de 95%, os limites garantem que o valor previsto estará entre eles com 95% de confiança.
+
+-   Intervalo de previsão para $h$ passos à frente com 95% de confianca.
 
 $$
 \hat{y}_{T+h|T} \pm1,96 \hat\sigma_h,
 $$
 
-- $z_{\gamma=0,95} = 1,96$: valor do quantil na distribuição normal-padrão $z$, com 0,95 de probabilidade ou confiança. 
+-   $z_{\gamma=0,95} = 1,96$: valor do quantil na distribuição normal-padrão $z$, com 0,95 de probabilidade ou confiança.
 
 ## Intervalos de previsão
 
-- Desvio-padrão para previsões com $h=1$ (um passo a frente): desvio-padrão dos resíduos.
-- $K$: número de parâmetros do modelo; $M$: número de valores ausentes nos resíduos (para o método ingênuo e o da deriva, por exemplo, $M=1$, uma vez que a primeira observação não pode ser estimada).
+-   Desvio-padrão para previsões com $h=1$ (um passo a frente): desvio-padrão dos resíduos.
+-   $K$: número de parâmetros do modelo; $M$: número de valores ausentes nos resíduos (para o método ingênuo e o da deriva, por exemplo, $M=1$, uma vez que a primeira observação não pode ser estimada).
 
 $$
 \hat\sigma = \sqrt{\frac{1}{T-K-M}\sum_{t=1}^T e_t^2}
@@ -487,20 +486,20 @@ $$
 
 ## Intervalos de previsão
 
-- Previsões com $h>1$ a estimativa de $\sigma_h$ é mais complexa. 
-- Equações para estimar o desvio-padrão para os métodos *benchmarking* até aqui expostos.
-- $m$: período sazonal; $k$: parte inteira de $(h−1)/m$.
+-   Previsões com $h>1$ a estimativa de $\sigma_h$ é mais complexa.
+-   Equações para estimar o desvio-padrão para os métodos *benchmarking* até aqui expostos.
+-   $m$: período sazonal; $k$: parte inteira de $(h−1)/m$.
 
 | Método          | desvio-padrão para $h$ previsões               |
 |-----------------|:-----------------------------------------------|
-| Média           | $\hat\sigma_h = \hat\sigma\sqrt{1+1/T}$        | 
+| Média           | $\hat\sigma_h = \hat\sigma\sqrt{1+1/T}$        |
 | Ingênuo         | $\hat\sigma_h = \hat\sigma\sqrt{h}$            |
 | Ingênuo sazonal | $\hat\sigma_h = \hat\sigma\sqrt{k+1}$          |
 | Deriva          | $\hat\sigma_h = \hat\sigma\sqrt{h(1+h/(T-1))}$ |
 
 ## Intervalos de previsão
 
-- Intervalos de confiança de 80 e 95\% para $h=10$ períodos para o índice Ibovespa.
+-   Intervalos de confiança de 80 e 95% para $h=10$ períodos para o índice Ibovespa.
 
 ```{r}
 ibov |>
@@ -511,7 +510,7 @@ ibov |>
 
 ## Intervalos de previsão
 
-- Intervalos de confiança de 80 e 95\% para $h=10$ períodos para o índice Ibovespa.
+-   Intervalos de confiança de 80 e 95% para $h=10$ períodos para o índice Ibovespa.
 
 ```{r}
 ibov |>
@@ -523,12 +522,15 @@ ibov |>
 
 ## Transformações
 
-- Usadas nas séries temporais para auxiliar no cumprimento das pressuposições sobre os resíduos.
-- Ou que alguma variação que aumenta ou cresce com o tempo seja corrigida. 
+-   Usadas nas séries temporais para auxiliar no cumprimento das pressuposições sobre os resíduos.
 
-- Transformação logarítima. 
-- Série original: $y_1, y_2, ..., y_T$. 
-- Série transformada : $w_1, w_2, ..., w_T$, com $w_t =log(y_t)$. 
+-   Ou que alguma variação que aumenta ou cresce com o tempo seja corrigida.
+
+-   Transformação logarítima.
+
+-   Série original: $y_1, y_2, ..., y_T$.
+
+-   Série transformada : $w_1, w_2, ..., w_T$, com $w_t =log(y_t)$.
 
 Transformação de **Box-Cox**
 
@@ -543,8 +545,8 @@ onde $\text{sign}(y_t) = 1$ se $y\geq0$ e $\text{sign}(y_t) =-1$, caso contrári
 
 ## Transformações
 
-- Série temporal das ações da vale (VALE3). 
-- Pode-se observar que a série apresenta alta variabilidade, especialmente de 2021 a 2023.
+-   Série temporal das ações da vale (VALE3).
+-   Pode-se observar que a série apresenta alta variabilidade, especialmente de 2021 a 2023.
 
 ```{r}
 vale <- read.csv("VALE3.csv", header = T, dec=",")
@@ -567,21 +569,39 @@ vale_ts |>
 https://br.investing.com/equities/vale-on-n1-historical-data
 :::
 
-## Avaliação de modelos de séries temporais
+## Transformações
 
-- A avaliação ideal deve ser baseada no desempenho do modelo em novos dados e não nos valores residuais. 
-- Deve-se considerar dados separados para teste do modelo ou em dados futuros. 
-- Não deve-se considerar dados usados para estimar (treinar) o modelo para testá-lo.
-
-- Exemplo: Separação das primeiras 75\% observações em treino e os 25\% restantes para teste.
+- Série após transformação de Box-Cox com $\lambda = 1,27$.
 
 ```{r}
+lambda <- vale_ts |>
+  features(Valor, features = guerrero) |>
+  pull(lambda_guerrero)
+vale_ts |>
+  autoplot(box_cox(Valor, lambda)) + 
+  labs(y="", x="")
+```
+
+## Avaliação de modelos de séries temporais
+
+-   A avaliação ideal deve ser baseada no desempenho do modelo em novos dados e não nos valores residuais.
+
+-   Deve-se considerar dados separados para teste do modelo ou em dados futuros.
+
+-   Não deve-se considerar dados usados para estimar (treinar) o modelo para testá-lo.
+
+-   Exemplo: Separação das primeiras 75% observações em treino e os 25% restantes para teste.
+
+```{r}
+#| fig-width: 8
+#| fig-height: 1
+
 data.frame(y=0, x=1:20,
            id = c(rep("treino", 20*.75), 
                 rep("teste", 20*.25))) |>
   ggplot(aes(x=x, y=y, col=id)) +
   theme_minimal() +
-  geom_point() + labs(x="Tempo",y="", col="") +
+  geom_point(size=2) + labs(x="Tempo",y="", col="") +
   theme(axis.text.x=element_blank(), 
         axis.ticks.x=element_blank(), 
         axis.text.y=element_blank(), 
@@ -594,26 +614,26 @@ data.frame(y=0, x=1:20,
 
 ## Avaliação de modelos de séries temporais
 
-- Erro de previsão (não confundir com resíduo).
+-   Erro de previsão (não confundir com resíduo).
 
 $$
 e_{T+h} = y_{T+h} - \hat{y}_{T+h|T}
 $$
 
-- Onde:  dados de treino $y_1,...,y_T$ e de teste  $y_{T+1}, y_{T+2}, ...$.
+-   Onde: dados de treino $y_1,...,y_T$ e de teste $y_{T+1}, y_{T+2}, ...$.
 
-- Métricas mais comuns para avaliar os modelos.
+-   Métricas mais comuns para avaliar os modelos.
 
-| Métrica  | Fórmula                                         |
-|----------|:------------------------------------------------|
-| MAE      | $\text{MAE = mean}(|e_t|)$                      | 
-| RMSE     | $\text{RMSE = }\sqrt{\text{mean}(e_t^2)}$       |
-| MAPE     | $\text{MAPE = mean}(|p_t|)$, $p_t = 100e_t/y_t$ |
-| MASE     | $\text{MAE = mean}(|q_j|)$                      |
+| Métrica | Fórmula                                         |
+|---------|:------------------------------------------------|
+| MAE     | $\text{MAE = mean}(|e_t|)$                      |
+| RMSE    | $\text{RMSE = }\sqrt{\text{mean}(e_t^2)}$       |
+| MAPE    | $\text{MAPE = mean}(|p_t|)$, $p_t = 100e_t/y_t$ |
+| MASE    | $\text{MAE = mean}(|q_j|)$                      |
 
 ## Avaliação de modelos de séries temporais
 
-- Desempenho dos três métodos considerados nos dados de temperatura instantânea de São João-del-Rei.
+-   Desempenho dos três métodos considerados nos dados de temperatura instantânea de São João-del-Rei.
 
 ```{r}
 last_days <- tempo_sjdr_7_dias |>

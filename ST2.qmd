@@ -26,7 +26,8 @@ library(cowplot)
 library(curl)
 theme_set(theme_bw())
 ```
-Algumas estatítiscas descritivas podem ser úteis para uma avaliação inicial de séries temporais. 
+
+Algumas estatítiscas descritivas podem ser úteis para uma avaliação inicial de séries temporais.
 
 ```{r}
 energia_2023 <- read.csv("BALANCO_ENERGIA_SUBSISTEMA_2023.csv", header = T, sep = ";")
@@ -54,7 +55,7 @@ energia_2023_tsibble |>
   arrange(mean) |> gt()
 ```
 
-A seguir expõe-se os quartis da mesma série para todas as fontes consideradas. Recordando, os quartis são valores na série que dividem os dados em quatro partes iguais. O primeiro deixa 25\% das observações abaixo, o segundo ou a mediana deixa 50\% das observações abaixo, enquanto o terceiro e último deixa 75\% dos dados abaixo. Observa-se também o mínimo (0\%) e máximo (100\%) de cada série.
+A seguir expõe-se os quartis da mesma série para todas as fontes consideradas. Recordando, os quartis são valores na série que dividem os dados em quatro partes iguais. O primeiro deixa 25% das observações abaixo, o segundo ou a mediana deixa 50% das observações abaixo, enquanto o terceiro e último deixa 75% dos dados abaixo. Observa-se também o mínimo (0%) e máximo (100%) de cada série.
 
 ```{r}
 energia_2023_tsibble |> features(value, quantile) |> gt()
@@ -112,6 +113,7 @@ co2_tsibble |>
   filter(YearMonth >= yearmonth("2000", format = "%Y %m")) |>
   features(CO2, feat_acf) |> gt()
 ```
+
 Abaixo são plotados algumas séries temporais e abaixo o correlograma correspondente. A série da Figura a corresponde a um ruído branco ou uma sequência de números aleatórios seguindo a distribuição normal. Tal série não apresenta autocorrelação significativa, conforme indica o seu correlograma na Figura d. A série da Figura b apresenta padrão cíclico com sazonalidade de 24h, conforme correlograma da Figura e. Já a série da Figura c apresenta tendência linear positiva clara com sazonalidade anual, conforme correlograma da Figura f.
 
 ```{r}
@@ -282,6 +284,7 @@ temp_fc |>
   labs(y = "Temp [°C]",x="") +
   guides(colour = guide_legend(title = "Previsao"))
 ```
+
 ### Deriva
 
 O método da deriva é uma variação do ingênuo que permite a previsão de observações com tendência de crescimento ou decréscimo segundo a deriva observada entre a primeira e última observação.
@@ -314,7 +317,6 @@ carros_pred4 |>
   labs(y = "Carros Produzidos", x = "")
 ```
 
-
 ### Resíduos e valores previstos
 
 Os valores previstos são denotados por $\hat{y}_{t|t-1}$, implicando que a previsão de $\hat{y}_{t}$ é baseada nas observações $y_1, ..., y_{t-1}$.
@@ -334,17 +336,17 @@ augment(temp_fit) |>
 
 Os resíduos de um modelo de séries temporais devem ser:
 
-1. Não correlacionados.
+1.  Não correlacionados.
 
-2. Com média nula.
+2.  Com média nula.
 
 Se os resíduos forem correlacionados eles apresentaram informações que deveriam ser incorporadas ao modelo, de forma a melhorar as previsões. Se os resíduos apresentam média diferente de zero, o modelo apresenta um viés. O viés pode ser corrigido subtraindo-o das previsões. Já a autocorrelação entre os resíduos tem correção mais trabalhosa, sendo este tema tratado posteriormente.
 
 É interessante, porém não-obrigatório, que os resíduos sejam:
 
-3. Homocedasticos.
+3.  Homocedasticos.
 
-4. Normalmente distribuídos.
+4.  Normalmente distribuídos.
 
 A homocedasticidade consiste na igualdade de variâncias. Séries com resíduos heterocedásticos podem ser tranformadas, visando obter homocedasticidade e normalidade.
 
@@ -375,7 +377,7 @@ aug |>
   geom_histogram()
 ```
 
-A seguir observa-se o correlograma da série do índice Ibovespa. Pode-se observar que a série é altamente correlacionada considerando defasagem de até 22 observações. 
+A seguir observa-se o correlograma da série do índice Ibovespa. Pode-se observar que a série é altamente correlacionada considerando defasagem de até 22 observações.
 
 ```{r}
 ibov |>
@@ -401,7 +403,7 @@ aug |>
 
 ### Testes para diagnóstico de autocorrelação
 
-Um teste *portmanteau* é um teste para averiguar se as $l$ primeiras autocorrelações são diferentes do que se esperaria para um ruído branco. Um destes testes seria o de **Box-Pierce**, com estatística calculada conforme segue. Sugere-se $l=10$ autocorrelações para séries não sazonais e $l=2m$ para casos sazonais, com $m$ sendo o período sazonal. Porém, o teste não é adequado para $l$ auto, sugerindo-se no máximo $l=T/5$. 
+Um teste *portmanteau* é um teste para averiguar se as $l$ primeiras autocorrelações são diferentes do que se esperaria para um ruído branco. Um destes testes seria o de **Box-Pierce**, com estatística calculada conforme segue. Sugere-se $l=10$ autocorrelações para séries não sazonais e $l=2m$ para casos sazonais, com $m$ sendo o período sazonal. Porém, o teste não é adequado para $l$ auto, sugerindo-se no máximo $l=T/5$.
 
 $$
 Q = T\sum_{k=1}^l r_k^2
@@ -413,9 +415,9 @@ $$
 Q^* = T(T+2)\sum_{k=1}^l (T-k)^{-1}r_k^2
 $$
 
-Em ambos os casos um alto valor de $Q^*$ (ou $Q$) sugere que as autocorrelações não vem de um ruído branco. Para decisão, considera-se que $Q^*$ (ou $Q$) segue a distribuição $\chi^2$ com $l$ graus de liberdade. 
+Em ambos os casos um alto valor de $Q^*$ (ou $Q$) sugere que as autocorrelações não vem de um ruído branco. Para decisão, considera-se que $Q^*$ (ou $Q$) segue a distribuição $\chi^2$ com $l$ graus de liberdade.
 
-A seguir expõe-se o valor $Q$ e $Q^*$ para os resíduos do modelo Ingênuo para os dados do índice Ibovespa. Pode-se concluir que, para ambas os testes, as autocorrelações dos resíduos não diferem das de uma série ruído branco. 
+A seguir expõe-se o valor $Q$ e $Q^*$ para os resíduos do modelo Ingênuo para os dados do índice Ibovespa. Pode-se concluir que, para ambas os testes, as autocorrelações dos resíduos não diferem das de uma série ruído branco.
 
 ```{r}
 aug |> features(.innov, box_pierce, lag = 10)
@@ -441,9 +443,9 @@ aug2 |> features(.innov, ljung_box, lag = 10) |> gt()
 
 ## Intervalos de confiança para previsão
 
-Ao se realizar previsões com séries temporais, considera-se um intervalo de confiança para a previsão com nível de probabilidade ou confiança de interesse. Para por exemplo um intervalo de previsão de 95\% os valores obtidos consistem nos limites que garantem que o valor previsto está entre eles com 95\% de confiança.
+Ao se realizar previsões com séries temporais, considera-se um intervalo de confiança para a previsão com nível de probabilidade ou confiança de interesse. Para por exemplo um intervalo de previsão de 95% os valores obtidos consistem nos limites que garantem que o valor previsto está entre eles com 95% de confiança.
 
-Um intervalo de previsão para $h$ passos à frente com 95\% de confianca pode ser calculado conforme segue.
+Um intervalo de previsão para $h$ passos à frente com 95% de confianca pode ser calculado conforme segue.
 
 $$
 \hat{y}_{T+h|T} \pm1,96 \hat\sigma_h,
@@ -461,12 +463,12 @@ Para previsões com $h>1$ a estimativa de $\sigma_h$ é mais complexa. A seguir 
 
 | Método          | desvio-padrão para $h$ previsões               |
 |-----------------|:-----------------------------------------------|
-| Média           | $\hat\sigma_h = \hat\sigma\sqrt{1+1/T}$        | 
+| Média           | $\hat\sigma_h = \hat\sigma\sqrt{1+1/T}$        |
 | Ingênuo         | $\hat\sigma_h = \hat\sigma\sqrt{h}$            |
 | Ingênuo sazonal | $\hat\sigma_h = \hat\sigma\sqrt{k+1}$          |
 | Deriva          | $\hat\sigma_h = \hat\sigma\sqrt{h(1+h/(T-1))}$ |
 
-A seguir apresenta-se intervalos de confiança de 80 e 95\% para $h=10$ períodos para o índice Ibovespa.
+A seguir apresenta-se intervalos de confiança de 80 e 95% para $h=10$ períodos para o índice Ibovespa.
 
 ```{r}
 ibov |>
@@ -534,7 +536,7 @@ Uma avaliação ideal de um modelo de séries temporais deve ser baseada no dese
 
 Conforme visto no caso para dados de temperatura instantânea para São João del-Rei, uma primeira abordagem consiste em simplesmente usar parte inicial da série para treino do modelo e as últimas observações para teste. O percentual de observações usadas para treino/teste depende do número de observações disponíveis na série.
 
-A seguir ilustra-se arbitrariamente a separação das primeiras 75\% observações em treino e os 25\% restantes para teste.
+A seguir ilustra-se arbitrariamente a separação das primeiras 75% observações em treino e os 25% restantes para teste.
 
 ```{r}
 data.frame(y=0, x=1:20,
@@ -553,7 +555,7 @@ data.frame(y=0, x=1:20,
   coord_fixed(ratio=3)
 ```
 
-O erro de previsão (não confundir com resíduo) é calculado conforme segue, com os dados de treino $y_1,...,y_T$ e de teste  $y_{T+1}, y_{T+2}, ...$.
+O erro de previsão (não confundir com resíduo) é calculado conforme segue, com os dados de treino $y_1,...,y_T$ e de teste $y_{T+1}, y_{T+2}, ...$.
 
 $$
 e_{T+h} = y_{T+h} - \hat{y}_{T+h|T}
@@ -561,12 +563,12 @@ $$
 
 O desempenho do modelo pode ser medido por diversas métricas. A seguir são apresentadas as principais métricas de ajuste. O erro médio absuluto (*mean absolute error* - MAE) e a raiz da média dos quadrados dos erros (*root mean square error* - RMSE) são medidos na mesma escala da variável da série. O MAE é menos suscetível a *outliers* e ambos devem ser minimizados. O O erro percentual médio absuluto (*mean absolute percentage error* - MAPE) tem a vantagem de ser livre de escala, permitindo a comparação do erro em séries distintas.
 
-| Métrica  | Fórmula                                         |
-|----------|:------------------------------------------------|
-| MAE      | $\text{MAE = mean}(|e_t|)$                      | 
-| RMSE     | $\text{RMSE = }\sqrt{\text{mean}(e_t^2)}$       |
-| MAPE     | $\text{MAPE = mean}(|p_t|)$, $p_t = 100e_t/y_t$ |
-| MASE     | $\text{MAE = mean}(|q_j|)$                      |
+| Métrica | Fórmula                                         |
+|---------|:------------------------------------------------|
+| MAE     | $\text{MAE = mean}(|e_t|)$                      |
+| RMSE    | $\text{RMSE = }\sqrt{\text{mean}(e_t^2)}$       |
+| MAPE    | $\text{MAPE = mean}(|p_t|)$, $p_t = 100e_t/y_t$ |
+| MASE    | $\text{MAE = mean}(|q_j|)$                      |
 
 As métricas com o erro padronizado, $q_j$, são alternativais ao MAPE para comparar desempenho em séries distintas. Elas consideram a escala dos dados de treino para tal. A fórmula a seguir é usada para padronizar os erros. Em séries sazonais substitui-se $T-1$ por $T-m$, onde $m$ é o período sazonal. O MASE na tabela acima considera tal padronização.
 
