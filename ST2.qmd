@@ -1,0 +1,672 @@
+---
+title: "Análise descritiva, métodos simples de previsão e diagnóstico"
+author: "Robson Bruno Dutra Pereira"
+format: html
+editor: visual
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+## Estatísiticas descritivas
+
+### Estatísticas simples
+
+```{r}
+library(forecast)
+library(tsibble)
+library(dplyr)
+library(tidyr)
+library(fpp3)
+library(ggplot2)
+library(modelsummary)
+library(cowplot)
+library(curl)
+library(knitr)
+theme_set(theme_bw())
+```
+
+Algumas estatítiscas descritivas podem ser úteis para uma avaliação inicial de séries temporais.
+
+```{r}
+
+energia_2023 <- read.csv("BALANCO_ENERGIA_SUBSISTEMA_2023.csv", header = T, sep = ";")
+
+energia_2023_tsibble <- energia_2023 |>
+  filter(id_subsistena == "SIN") |>
+  rename_with(~ tolower(gsub("val_ger", "", .x))) |>
+  mutate(din_instante = as.POSIXct(din_instante, format = "%Y-%m-%d %H:%M:%S")) |>
+  as_tsibble(index = din_instante) |>
+  select(!c(id_subsistena,nom_subsistema,
+            val_carga,val_intercambio)) |>
+  pivot_longer(!din_instante)
+```
+
+```{r}
+# energia_2023_tsibble |> glimpse()
+```
+
+A @tbl-est expõe a média e o desvio-padrão para a série multivariada de energia produzida em MWh no Brasil em 2023, segundo cada fonte. Observa-se a superioridade da série hidráulica em relação às demais, confirmando a dependência desta fonte na matriz energética brasileira.
+
+```{r}
+#| label: tbl-est
+#| tbl-cap: "Média e desvio-padrão da série multivariada de Energia"
+kable(
+energia_2023_tsibble |>
+  features(value, list(mean = mean,
+                       sd = sd)) |>
+  arrange(mean)
+)
+```
+
+A @bl-quatis expõe os quartis da mesma série para todas as fontes consideradas. Recordando, os quartis são valores na série que dividem os dados em quatro partes iguais. O primeiro deixa 25% das observações abaixo, o segundo ou a mediana deixa 50% das observações abaixo, enquanto o terceiro e último deixa 75% dos dados abaixo. Observa-se também o mínimo (0%) e máximo (100%) de cada série.
+
+```{r}
+#| label: tbl-quatis
+#| tbl-cap: "Média e desvio-padrão da série multivariada de Energia"
+kable(
+energia_2023_tsibble |> features(value, quantile) 
+)
+```
+
+```{r}
+# energia_2023_tsibble |> 
+#   pivot_wider(names_from = name, values_from = value) |>
+# datasummary_skim()
+```
+
+### Autocorrelação
+
+A autocorrelação é uma estatística importante para avaliar séries temporais. Para avaliar a autocorrelação, deve-se defasar a série e testar a correlação da série original com a série defasada. Para uma defasagem (*lag*) de uma observação, $k= 1$, calcula-se a correlação $r_1$ entre $y_t$ e $y_{t-1}$. Para uma defasagem de duas observações, $k= 2$, calcula-se a correlação $r_2$ entre $y_t$ e $y_{t-2}$ e assim sucessivamente.
+
+$$
+r_k = \frac{\sum_{t=k+1}^T (y_t-\bar{y})(y_{t-k}-\bar{y})}{\sum_{t=1}^T (y_t-\bar{y})^2}
+$$
+
+O correlograma consiste no gráfico que plota tais autocorrelações. A Figura @fig-corr_co2 plota o correlograma da série de níveis de CO2 a partir de 2000.
+
+```{r}
+co2 <- read.csv("co2_mm_mlo.txt", header = TRUE, skip = 41, sep = "")
+co2 <- co2[, 1:5]
+colnames(co2) <- c("year", "month", "decimal.date", "monthly.averaged", "de-season.alized")
+co2$Date <- as.Date(paste(co2$year, co2$month, "01", sep = "-"))
+
+co2_tsibble <- tsibble(Date = co2$Date, 
+                       CO2 = co2$monthly.averaged, 
+                       index = Date)
+
+co2_tsibble <- co2_tsibble |>
+  filter(!is.na(CO2))
+
+co2_tsibble <- co2_tsibble |>
+  index_by(YearMonth = yearmonth(Date)) |>
+  summarise(CO2 = sum(CO2, na.rm = TRUE))
+```
+
+```{r}
+#| label: fig-corr_co2
+#| fig-cap: "Correlograma da série de níveis de CO2"
+co2_tsibble |>
+  filter(YearMonth >= yearmonth("2000", format = "%Y %m")) |>
+  ACF(CO2, lag_max = 100) |>
+  autoplot() + labs(title="Correlograma: níveis de CO2")
+```
+
+Séries com tendência geralmente apresentam correlações mais altas nas defasagens menores, uma vez que os valores adjacentes na série são próximos. Séries com sazonalidade apresentam autocorrelação alta no período sazonal. Para o caso plotado, pode-se confirmar a presença de tendência e de autocorrelação anual na série.
+
+A @tbl-autocor apresenta algumas estatísticas relacionadas à autocorrelação: o primeiro coeficiente de autocorrelação, $r_1$; a soma dos quadrados dos primeiros 10 coeficientes de autocorrelação, $\sum_{k=1}^{10}r_i^2$; o primeiro coeficiente de correlação da série diferenciada; a soma dos quadrados dos primeiros 10 coeficientes da série diferenciada; o primeiro coeficiente de correlação da série diferenciada com defasagem de duas observações; a soma dos quadrados dos primeiros 10 coeficientes da série diferenciada de duas observações; e o coeficiente de autocorrelação do primeiro lag sazonal, caso a série tenha sazonalidade.
+
+```{r}
+#| label: tbl-autocor
+#| tbl-cap: "Estatísticas relacionadas à autocorrelação"
+kable(
+co2_tsibble |> 
+  filter(YearMonth >= yearmonth("2000", format = "%Y %m")) |>
+  features(CO2, feat_acf)
+)
+```
+
+Na @fig-corr plotados algumas séries temporais e abaixo o correlograma correspondente. A série da @fig-corr(a) corresponde a um ruído branco ou uma sequência de números aleatórios seguindo a distribuição normal. Tal série não apresenta autocorrelação significativa, conforme indica o seu correlograma na @fig-corr(d). A série da @fig-corr(b) apresenta padrão cíclico com sazonalidade de 24h, conforme correlograma da @fig-corr(e). Já a série da @fig-corr(c) apresenta tendência linear positiva clara com sazonalidade anual, conforme correlograma da @fig-corr(f).
+
+```{r}
+carros <- read.csv("vendas_veiculos.csv", sep = ";")
+
+carros_tsibble <- carros |>
+  mutate(ano_mes = yearmonth(as.Date(data, format = "%d/%m/%Y"))) |>
+  as_tsibble(index = ano_mes)
+```
+
+```{r}
+tempo_sjdr <- read.csv("INMET_SJDR_2024.csv",
+                       header=T)
+
+tempo_sjdr$Hora..UTC. <- tempo_sjdr$Hora..UTC./100
+
+tempo_sjdr <- tempo_sjdr[,1:3]
+
+tempo_sjdr <- tempo_sjdr |>
+  mutate(Data = dmy(Data)) |>
+  mutate(Data = make_datetime(year(Data), month(Data), day(Data), Hora..UTC.)) |>
+  select(!Hora..UTC.) |>
+  as_tsibble(index = Data) |>
+  rename(Temp = Temp..Ins...C.)
+```
+
+```{r}
+# Definir a data inicial
+data_inicial <- as.POSIXct("2024-05-01 00:00:00")
+
+datas_especificas <- seq(from = data_inicial, by = "hour", length.out = 14*24)
+
+tempo_sjdr_7_dias <- tempo_sjdr |>
+  filter(Data %in% datas_especificas)
+
+# tempo_sjdr_7_dias |>
+#   autoplot(Temp) + 
+#   labs(x = "", y = "Temp [°C]")
+```
+
+```{r}
+ibov <- read.csv("Ibovespa_ InfoMoney_2024.csv",
+                 header=T)
+
+ibov <- ibov |>
+  mutate(DATA = 1:nrow(ibov)) |>
+  select(DATA,FECHAMENTO) |>
+  as_tsibble(index = DATA)
+```
+
+```{r}
+#| label: fig-corr
+#| fig-cap: "Séries e respectivos correlogramas"
+set.seed(77)
+white <- tsibble(date = as.Date("2024-01-01") + 0:199,
+                 value = rnorm(200)+70)
+
+p1 <- white |> autoplot(value) + labs(x="",y="")
+# p2 <- carros_tsibble |> autoplot(valor) + labs(x="",y="")
+p3 <- tempo_sjdr_7_dias |> autoplot(Temp) + labs(x="",y="")
+p4 <- co2_tsibble |> filter(YearMonth >= yearmonth("2000", format = "%Y %m")) |> autoplot(CO2) + labs(x="",y="")
+p5 <- white |> ACF(value, lag_max = 30) |> autoplot()
+# p6 <- carros_tsibble |> ACF(valor, lag_max = 30) |> autoplot()
+p7 <- tempo_sjdr_7_dias |> ACF(Temp, lag_max = 30) |> autoplot()
+p8 <- 
+co2_tsibble |>
+  filter(YearMonth >= yearmonth("2000", format = "%Y %m")) |>
+  ACF(CO2, lag_max = 30) |>
+  autoplot()
+
+plot_grid(p1,p3,p4,p5,p7,p8, nrow=2,
+              labels = as.vector(letters[1:6]),
+          label_size = 10) +
+  labs(title="Séries e respectivos correlogramas")
+```
+
+## Métodos simples de previsão
+
+### Média
+
+Seja a série histórica $y_1, ..., y_T$. A média pode ser aplicada para previsão de séries temporais, de forma que uma ou mais observações futuras são previstas a partir da média das $T$ observações disponíveis da série.
+
+$$
+\hat{y}_{T+h|T}=\frac{1}{T}\sum_{t=1}^Ty_t=\frac{y_1+y_2+...+y_T}{T}
+$$
+
+Na @fig-car expõe-se a previsão com a média para três dias à frente na série temporal de produção de carros no Brasil.
+
+```{r}
+carros_fit1 <- carros_tsibble |> 
+  model(mean = MEAN(valor))
+```
+
+```{r}
+carros_pred1 <- carros_fit1 |>
+  forecast(h = "3 years")
+# carros_pred1
+```
+
+```{r}
+#| label: fig-car
+#| fig-cap: "Previsão por média na série de produção de carros no Brasil"
+carros_pred1 |> 
+  autoplot(carros_tsibble, level = NULL) +
+  labs(y = "Carros Produzidos", x = "",
+       title="Produção de carros: previsão por média")
+```
+
+### Método ingênuo
+
+O método ingênuo propõe prever as observções futuras como a última observação.
+
+$$
+\hat{y}_{T+h|T}=y_T
+$$
+
+Na @fig-car2 expõe-se a previsão com o método ingênuo para três dias à frente na série temporal de produção de carros no Brasil.
+
+```{r}
+#| label: fig-car2
+#| fig-cap: "Previsão por média na série de produção de carros no Brasil"
+carros_fit2 <- carros_tsibble |> 
+  model(naive = NAIVE(valor))
+
+carros_pred2 <- carros_fit2 |>
+  forecast(h = "3 years")
+# carros_pred2
+
+carros_pred2 |> 
+  autoplot(carros_tsibble, level = NULL) +
+  labs(y = "Carros Produzidos", x = "",
+       title="Produção de carros: previsão pelo método ingênuo")
+```
+
+### Ingênuo sazonal
+
+O método ingênuo sazonal é indicado para séries muito sazonais e propõe prever as observações futuras iguais aos períodos das estações anteriores, por exemplo mesmo valor do mês do ano anterior. Na formulação dos valores preditos a seguir, $m$ consiste no período sazonal e $k$ é a parte inteira de $(h-1)/m$, ou seja, o número completo de anos do período de previsão antes de $T+h$.
+
+$$
+\hat{y}_{T+h|T}=y_{T+h-m(k+1)}
+$$
+
+Na @fig-car3 expõe-se a previsão com o método ingênuo sazonal para três dias à frente na série temporal de produção de carros no Brasil.
+
+```{r}
+#| label: fig-car3
+#| fig-cap: "Previsão por média na série de produção de carros no Brasil"
+carros_fit3 <- carros_tsibble |> 
+  model(snaive = SNAIVE(valor ~ lag("year")))
+
+carros_pred3 <- carros_fit3 |>
+  forecast(h = "3 years")
+# carros_pred3
+
+carros_pred3 |> 
+  autoplot(carros_tsibble, level = NULL) +
+  labs(y = "Carros Produzidos", x = "",
+       title="Produção de carros: previsão pelo método ingênuo sazonal")
+```
+
+A @fig-temp apresenta um conjunto de dados de temperatura instantânea coletada de hora em hora das duas primeiras semanas de Maio de 2024 para a cidade de São joão del-Rei. Os dados foram obtidos em https://tempo.inmet.gov.br/TabelaEstacoes/A001. Foram considerados os dados da primeira semana para treinar os modelos, sendo as previsões plotadas para a semana seguinte juntamente com os dados. Pode-se observar que as previsões obtidas com o método ingênuo sazonal apresentam bom ajuste aos dados.
+
+```{r}
+#| label: fig-temp
+#| fig-cap: "Previsão da temperatura em São João del-Rei em Maio de 2024 pelos três métodos benchmarking apresentados"
+train <- tempo_sjdr_7_dias |>
+  filter_index("2024-05-01 00:00:00" ~ "2024-05-07 23:00:00")
+
+temp_fit <- train |>
+  model(
+    media = MEAN(Temp),
+    Ingenuo = NAIVE(Temp),
+    `Ingenuo sazonal` = SNAIVE(Temp)
+  )
+
+temp_fc <- temp_fit |> forecast(h = 7*24)
+temp_fc |>
+  autoplot(train, level = NULL) +
+  autolayer(
+    filter_index(tempo_sjdr_7_dias, "2024-05-08 00:00:00" ~ .),
+    colour = "black") +
+  labs(y = "Temp [°C]",x="") +
+  guides(colour = guide_legend(title = "Previsao")) +
+  labs(title="Previsão da temperatura em São João del-Rei pelos três métodos")
+```
+
+### Deriva
+
+O método da deriva é uma variação do ingênuo que permite a previsão de observações com tendência de crescimento ou decréscimo segundo a deriva observada entre a primeira e última observação.
+
+$$
+\hat{y}_{T+h|T} = y_T + \frac{h}{T-1}\sum_{t=2}^T(y_t-y_{t-1}) =y_T+h \bigg(\frac{y_T-y_1}{T-1}\bigg) 
+$$
+
+Na @fig-car4 aplica-se a previsão com o método da deriva para três dias à frente na série temporal de produção de carros no Brasil.
+
+```{r}
+#| label: fig-car4
+#| fig-cap: "Previsão por deriva na série de produção de carros no Brasil"
+carros_fit4 <- carros_tsibble |> 
+  model(drift = RW(valor ~ drift()))
+
+carros_pred4 <- carros_fit4 |>
+  forecast(h = "3 years")
+# carros_pred4
+
+primeiro_ponto <- carros_tsibble |> slice(1)
+ultimo_ponto <- carros_tsibble |> slice(n())
+
+carros_pred4 |> 
+  autoplot(carros_tsibble, level = NULL) +
+  geom_segment(data = carros_tsibble, 
+               mapping = aes(x = primeiro_ponto$ano_mes, 
+                   y = primeiro_ponto$valor,
+                   xend = ultimo_ponto$ano_mes, 
+                   yend = ultimo_ponto$valor),
+               color = "blue", linetype = 2) +
+  labs(y = "Carros Produzidos", x = "", title="Produção de carros: previsão pelo método da deriva")
+```
+
+### Resíduos e valores previstos
+
+Os valores previstos são denotados por $\hat{y}_{t|t-1}$, implicando que a previsão de $\hat{y}_{t}$ é baseada nas observações $y_1, ..., y_{t-1}$.
+
+Os resíduos de uma série temporal consistem nos valores do erro, sendo calculados como a diferença entre o observado e o previsto em cada instante de tempo, $e_t=y_t-\hat{y}_t$.
+
+Na @tbl-fitres são observados os valores previstos (`.fitted`) e os resíduos (`.resid`) para as previsões obtidas com o método Ingênuo sazonal para o último exemplo para as últimas observações.
+
+```{r}
+#| label: tbl-fitres
+#| tbl-cap: "Valores previstos e residuais obtidos pelo método ingênuo para a série de produção de carros"
+kable(
+augment(temp_fit) |> 
+  filter(.model == "Ingenuo sazonal") |>
+  select(!c(.model, .innov)) |>
+  tail()
+)
+```
+
+### Diagnósticos dos resíduos
+
+Os resíduos de um modelo de séries temporais devem ser:
+
+1.  Não correlacionados.
+
+2.  Com média nula.
+
+Se os resíduos forem correlacionados eles apresentaram informações que deveriam ser incorporadas ao modelo, de forma a melhorar as previsões. Se os resíduos apresentam média diferente de zero, o modelo apresenta um viés. O viés pode ser corrigido subtraindo-o das previsões. Já a autocorrelação entre os resíduos tem correção mais trabalhosa, sendo este tema tratado posteriormente.
+
+É interessante, porém não-obrigatório, que os resíduos sejam:
+
+3.  Homocedasticos.
+
+4.  Normalmente distribuídos.
+
+A homocedasticidade consiste na igualdade de variâncias. Séries com resíduos heterocedásticos podem ser tranformadas, visando obter homocedasticidade e normalidade.
+
+Na @fig-ibov é plotada a série histórica de 187 observações do índice Ibovespa, https://www.infomoney.com.br/cotacoes/b3/indice/ibovespa/historico/.
+
+```{r}
+#| label: fig-ibov
+#| fig-cap: "Série do índice Ibovespa"
+ibov |>
+  autoplot(FECHAMENTO) + 
+  labs(y = "Índice Ibovespa B3 [R$]", x = "",
+       title="Índice Ibovespa") 
+```
+
+A previsão de índices da bolsa é geralmente feita com bom resultado usando o método Ingênuo. Neste caso os resíduos serão calculados como a diferença da observação atual e anterior, $e_t = y_t - \hat{y}_t = y_t - y_{t-1}$. Na @fig-ibovresi são plotados os resíduos. De forma geral estão aparentam apresentar boa distribuição, sem assimetrias e tendência.
+
+```{r}
+#| label: fig-ibovresi
+#| fig-cap: "Resíduos da série do índice Ibovespa para o método ingênuo"
+aug <- ibov |>
+  model(NAIVE(FECHAMENTO)) |>
+  augment()
+
+autoplot(aug, .resid) +
+  labs(y = "R$", x="", title="Resíduos da série do índice Ibovespa: método ingênuo")
+```
+
+Na @fig-ibovhist é plotado o histograma dos resíduos, o qual aparenta adequar-se bem à distribuição normal.
+
+```{r}
+#| label: fig-ibovhist
+#| fig-cap: "Histograma dos resíduos da série do índice Ibovespa"
+aug |>
+  ggplot(aes(x = .resid)) +
+  geom_histogram() +
+  labs(title="Histograma dos resíduos")
+```
+
+Na @fig-ibovcorr observa-se o correlograma da série do índice Ibovespa. Pode-se observar que a série é altamente autocorrelacionada considerando defasagem de até 22 observações.
+
+```{r}
+#| label: fig-ibovcorr
+#| fig-cap: "Correlograma da série do índice Ibovespa"
+ibov |>
+  ACF(FECHAMENTO) |>
+  autoplot() + 
+  labs(x="", title="Correlograma da série do índice Ibovespa")
+```
+
+Em sequência na @fig-ibovcorr2 plota-se o correlograma dos resíduos. Pode-se observar que o método Ingênuo resultou em resíduos não correlacionados, de forma que o modelo considera toda a informação disponível nos dados. Obviamente podem haver modelos melhores que também garantam a ausência de autocorrelação residual.
+
+```{r}
+#| label: fig-ibovcorr2
+#| fig-cap: "Correlograma dos resíduos da série do índice Ibovespa"
+aug |>
+  ACF(.resid) |>
+  autoplot() + labs(x="",
+                    title="Correlograma dos resíduos: índice Ibovespa")
+```
+
+```{r}
+# A Figura a seguir resume todas estas informações gráficas. Neste caso o histograma foi plotado com um número menor de intervalos.
+
+# ibov |>
+#   model(NAIVE(FECHAMENTO)) |>
+#   gg_tsresiduals()
+```
+
+### Testes para diagnóstico de autocorrelação
+
+Um teste *portmanteau* é um teste para averiguar se as $l$ primeiras autocorrelações são diferentes do que se esperaria para um ruído branco. Um destes testes seria o de **Box-Pierce**, com estatística calculada conforme segue. Sugere-se $l=10$ autocorrelações para séries não sazonais e $l=2m$ para casos sazonais, com $m$ sendo o período sazonal. Porém, o teste não é adequado para $l$ auto, sugerindo-se no máximo $l=T/5$.
+
+$$
+Q = T\sum_{k=1}^l r_k^2
+$$
+
+Um teste mais adequado é o de **Ljung-Box**, com estatística calculada conforme segue.
+
+$$
+Q^* = T(T+2)\sum_{k=1}^l (T-k)^{-1}r_k^2
+$$
+
+Em ambos os casos um alto valor de $Q^*$ (ou $Q$) sugere que as autocorrelações não vem de um ruído branco. Para decisão, considera-se que $Q^*$ (ou $Q$) segue a distribuição $\chi^2$ com $l$ graus de liberdade.
+
+Na @tbl-testes expõe-se o valor $Q$ e $Q^*$ para os resíduos do modelo Ingênuo para os dados do índice Ibovespa. Pode-se concluir que, para ambas os testes, as autocorrelações dos resíduos não diferem das de uma série ruído branco.
+
+```{r}
+#| label: tbl-testes
+#| tbl-cap: "Valores das estatísticas Q e Q* para os resíduos do método ingênuo para o índice Ibovespa"
+kable(
+aug |> features(.innov, box_pierce, lag = 10)
+)
+kable(
+aug |> features(.innov, ljung_box, lag = 10)
+)
+```
+
+O método da deriva é um pouco mais adequado que o Ingênuo para séries de índices de bolsas de valores. Na @tbl-testes2 são exibidos os resultados dos testes de **Box-Pierce** e de **Ljung-Box** para as autocorrelações residuais de tal método.
+
+```{r}
+aug2 <- ibov |>
+  model(RW(FECHAMENTO ~ drift())) |>
+  augment()
+# autoplot(aug2, .resid) +
+#   labs(y = "R$", x="")
+```
+
+```{r}
+#| label: tbl-testes2
+#| tbl-cap: "Valores das estatísticas Q e Q* para os resíduos do método da deriva para o índice Ibovespa"
+kable(
+aug2 |> features(.innov, box_pierce, lag = 10)
+)
+kable(
+aug2 |> features(.innov, ljung_box, lag = 10)
+)
+```
+
+## Intervalos de confiança para previsão
+
+Ao se realizar previsões com séries temporais, considera-se um intervalo de confiança para a previsão com nível de probabilidade ou confiança de interesse. Para por exemplo um intervalo de previsão de 95% os valores obtidos consistem nos limites que garantem que o valor previsto está entre eles com 95% de confiança.
+
+Um intervalo de previsão para $h$ passos à frente com 95% de confianca pode ser calculado conforme segue.
+
+$$
+\hat{y}_{T+h|T} \pm1,96 \hat\sigma_h,
+$$
+
+onde $1,96$ consiste no valor do quantil na distribuição normal-padrão $z$, com 0,95 de probabilidade ou confiança. Obviamente, caso deseje-se um intervalo com nível de confiança diferente, deve-se selecionar o valor $z$ adequado.
+
+O desvio-padrão para previsões com $h=1$ (um passo a frente) pode ser calculado como o desvio-padrão dos resíduos, onde $K$ é o número de parâmetros do modelo e $M$ o número de valores ausentes nos resíduos (para o método ingênuo e o da deriva, por exemplo, $M=1$, uma vez que a primeira observação não pode ser estimada).
+
+$$
+\hat\sigma = \sqrt{\frac{1}{T-K-M}\sum_{t=1}^T e_t^2}
+$$
+
+Para previsões com $h>1$ a estimativa de $\sigma_h$ é mais complexa. A @ @tbl-desvio expõe as Equações para estimar o desvio-padrão para os métodos *benchmarking* até aqui expostos, onde $m$ é o período sazonal e $k$ consiste na parte inteira de $(h−1)/m$.
+
+| Método          | desvio-padrão para $h$ previsões               |
+|-----------------|:-----------------------------------------------|
+| Média           | $\hat\sigma_h = \hat\sigma\sqrt{1+1/T}$        |
+| Ingênuo         | $\hat\sigma_h = \hat\sigma\sqrt{h}$            |
+| Ingênuo sazonal | $\hat\sigma_h = \hat\sigma\sqrt{k+1}$          |
+| Deriva          | $\hat\sigma_h = \hat\sigma\sqrt{h(1+h/(T-1))}$ |
+: My Caption {#tbl-desvio}
+
+Na @tbl-ic são apresentados os intervalos de confiança de 80 e 95% para $h=10$ períodos para o índice Ibovespa.
+
+```{r}
+#| label: tbl-ic
+#| tbl-cap: "Intervalo de previsão para a série do índice Ibovespa"
+kable(
+ibov |>
+  model(RW(FECHAMENTO ~ drift())) |>
+  forecast(h = 10) |>
+  hilo()
+)
+```
+
+A @fig-ibovpred plota tais intervalos juntamente com a série.
+
+```{r}
+#| label: fig-ibovpred
+#| fig-cap: "Intervalo de previsão para a série do índice Ibovespa"
+ibov |>
+  model(RW(FECHAMENTO ~ drift())) |>
+  forecast(h = 10) |>
+  autoplot(ibov) + 
+  labs(y = "Índice Ibovespa B3 [R$]", x = "", 
+       title="Intervalo de previsão") 
+```
+
+### Transformações
+
+Transformações podem ser usadas nas séries temporais, de forma a garantir, por exemplo, que as pressuposições sobre os resíduos sejam cumpridas, ou que alguma variação que aumenta ou cresce com o tempo seja corrigida. A transformação logarítima é geralmente útil. Tomando a série original, $y_1, y_2, ..., y_T$, a série transformada fica $w_1, w_2, ..., w_T$, com $w_t =log(y_t)$. Uma mudança na escala log com base 10 em uma unidade corresponde uma multiplicação por 10 na escala original.
+
+Outras transformações podem ser mais interessantes em alguns casos, porém nem sempre de fácil interpretação, por exemplo as transfoprmações de potência, $w_t = y_t^p$. A transformação de **Box-Cox** envolve ambos logarítmo e potência, conforme segue.
+
+$$
+w_t = \Bigg\{ \begin{matrix}
+                \text{log}(y_t), \text{ }\lambda=0 \\
+                (\text{sign}(y_t)|y_t|^\lambda-1)/\lambda, \text{ }\lambda>0
+             \end{matrix}
+$$
+
+onde $\text{sign}(y_t) = 1$ se $y\geq0$ e $\text{sign}(y_t) =-1$, caso contrário.
+
+Na @fig-vale apresenta-se graficamente a série temporal das ações da vale (VALE3), https://br.investing.com/equities/vale-on-n1-historical-data. Pode-se observar que a série apresenta alta variabilidade, especialmente de 2021 a 2023.
+
+```{r}
+vale <- read.csv("VALE3.csv", header = T, dec=",")
+
+vale_ts <- tsibble(Date = as.Date(vale$Data,
+                                  format = "%d.%m.%Y"),
+                   Valor = vale$Último,
+                   index = Date)
+```
+
+```{r}
+#| label: fig-vale
+#| fig-cap: "Série temporal do valor da ação VALE3"
+
+vale_ts <- vale_ts |>
+  filter(year(Date) > 2015)
+
+vale_ts |>  
+  autoplot(Valor) + labs(x="",
+                         title="Valor da ação VALE3")
+```
+
+Na @fig-valetrans apresenta-se a mesma série após transformação de Box-Cox com $\lambda = 1,27$.
+
+```{r}
+#| label: fig-valetrans
+#| fig-cap: "Série temporal do valor da ação VALE3 com transformação de Box-Cox"
+lambda <- vale_ts |>
+  features(Valor, features = guerrero) |>
+  pull(lambda_guerrero)
+vale_ts |>
+  autoplot(box_cox(Valor, lambda)) + 
+  labs(y="", x="", title="Série da ação VALE3 com transfrmação de Box-Cox")
+```
+
+## Avaliação de modelos de séries temporais
+
+Uma avaliação ideal de um modelo de séries temporais deve ser baseada no desempenho do modelo em novos dados e não nos valores residuais. Para tal, deve-se considerar dados separados para teste do modelo ou em dados futuros. Portanto, não se deve considerar os dados usados para estimar (treinar) o modelo para testá-lo.
+
+Conforme visto no caso para dados de temperatura instantânea para São João del-Rei, uma primeira abordagem consiste em simplesmente usar parte inicial da série para treino do modelo e as últimas observações para teste. O percentual de observações usadas para treino/teste depende do número de observações disponíveis na série.
+
+Na @fig-valid ilustra-se arbitrariamente a separação das primeiras 75% observações em treino e os 25% restantes para teste.
+
+```{r}
+#| label: fig-valid
+#| fig-cap: "Observações de treino e teste para validar séries temporais"
+#| fig-width: 8
+#| fig-height: 1
+
+data.frame(y=0, x=1:20,
+           id = c(rep("treino", 20*.75), 
+                rep("teste", 20*.25))) |>
+  ggplot(aes(x=x, y=y, col=id)) +
+  theme_minimal() +
+  geom_point() + labs(x="Tempo",y="", col="") +
+  theme(axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank(), 
+        axis.text.y=element_blank(), 
+        axis.ticks.y=element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()) + 
+  coord_fixed(ratio=3)
+```
+
+O erro de previsão (não confundir com resíduo) é calculado conforme segue, com os dados de treino $y_1,...,y_T$ e de teste $y_{T+1}, y_{T+2}, ...$.
+
+$$
+e_{T+h} = y_{T+h} - \hat{y}_{T+h|T}
+$$
+
+O desempenho do modelo pode ser medido por diversas métricas. A @tbl-erro apresenta as principais métricas de ajuste. O erro médio absuluto (*mean absolute error* - MAE) e a raiz da média dos quadrados dos erros (*root mean square error* - RMSE) são medidos na mesma escala da variável da série. O MAE é menos suscetível a *outliers* e ambos devem ser minimizados. O O erro percentual médio absuluto (*mean absolute percentage error* - MAPE) tem a vantagem de ser livre de escala, permitindo a comparação do erro em séries distintas.
+
+| Métrica | Fórmula                                         |
+|---------|:------------------------------------------------|
+| MAE     | $\text{MAE = mean}(|e_t|)$                      |
+| RMSE    | $\text{RMSE = }\sqrt{\text{mean}(e_t^2)}$       |
+| MAPE    | $\text{MAPE = mean}(|p_t|)$, $p_t = 100e_t/y_t$ |
+| MASE    | $\text{MAE = mean}(|q_j|)$                      |
+: My Caption {#tbl-erro}
+
+As métricas com o erro padronizado, $q_j$, são alternativais ao MAPE para comparar desempenho em séries distintas. Elas consideram a escala dos dados de treino para tal. A fórmula a seguir é usada para padronizar os erros. Em séries sazonais substitui-se $T-1$ por $T-m$, onde $m$ é o período sazonal. O MASE na tabela acima considera tal padronização.
+
+$$
+q_j = \frac{e_j}{\frac{1}{T-1}\sum_{t+2}^T |y_t-y_{t-1}|}
+$$
+
+A @tbl-erro expõe o desempenho dos três métodos considerados nos dados de temperatura instantânea de São João-del-Rei. O método Ingênuo sazonal para esta série foi o que apresentou melhor ajuste.
+
+```{r}
+#| label: tbl-erro
+#| tbl-cap: "Valores das estatísticas Q e Q* para os resíduos do método da deriva para o índice Ibovespa"
+last_days <- tempo_sjdr_7_dias |>
+  filter_index("2024-05-08 00:00:00" ~ .)
+
+kable(
+accuracy(temp_fc, last_days) |>
+  select(.model,RMSE,MAE,MAPE))
+```
+
+
